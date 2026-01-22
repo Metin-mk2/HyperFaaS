@@ -44,7 +44,10 @@ type WorkerConfig struct {
 		FilePath string `env:"LOG_FILE"`
 	}
 	Stats struct {
-		UpdateBufferSize int64 `env:"UPDATE_BUFFER_SIZE"`
+		UpdateBufferSize int64         `env:"UPDATE_BUFFER_SIZE"`
+		MetricsInterval  time.Duration `env:"METRICS_INTERVAL"`
+		BudgetCPU        float64       `env:"WORKER_BUDGET_CPU"`
+		BudgetMemory     int64         `env:"WORKER_BUDGET_MEMORY"`
 	}
 }
 
@@ -61,6 +64,9 @@ func parseArgs() (wc WorkerConfig) {
 	flag.StringVar(&(wc.Log.FilePath), "log-file", "", "Log file path (defaults to stdout) (Env: LOG_FILE)")
 	flag.BoolVar(&(wc.Runtime.Containerized), "containerized", false, "Use socket to connect to Docker. (Env: RUNTIME_CONTAINERIZED)")
 	flag.Int64Var(&(wc.Stats.UpdateBufferSize), "update-buffer-size", 10000, "Update buffer size. (Env: UPDATE_BUFFER_SIZE)")
+	flag.DurationVar(&(wc.Stats.MetricsInterval), "metrics-interval", 1*time.Second, "Metrics sampling interval. (Env: METRICS_INTERVAL)")
+	flag.Float64Var(&(wc.Stats.BudgetCPU), "worker-budget-cpu", 2, "Worker CPU budget in cores. (Env: WORKER_BUDGET_CPU)")
+	flag.Int64Var(&(wc.Stats.BudgetMemory), "worker-budget-memory", 4*1024*1024*1024, "Worker memory budget in bytes. (Env: WORKER_BUDGET_MEMORY)")
 	flag.StringVar(&(wc.Runtime.ServiceName), "service-name", "worker", "Docker compose service name. (Env: RUNTIME_SERVICE_NAME)")
 	flag.StringVar(&(wc.Runtime.NetworkName), "network-name", "hyperfaas-network", "Docker network name for function containers. (Env: RUNTIME_NETWORK_NAME)")
 	flag.Var(&etcdEndpoints, "etcd-endpoint", "Etcd endpoint (can be specified multiple times). Defaults to localhost:2379")
@@ -123,7 +129,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	c := controller.NewController(runtime, statsManager, logger, wc.General.Address, metadataClient, readySignals)
+	c := controller.NewController(runtime, statsManager, logger, wc.General.Address, metadataClient, readySignals, wc.Runtime.Containerized, wc.Stats.MetricsInterval, wc.Stats.BudgetCPU, uint64(wc.Stats.BudgetMemory))
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
