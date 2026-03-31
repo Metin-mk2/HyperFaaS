@@ -3,23 +3,21 @@ package main
 import (
 	"context"
 
-	"github.com/3s-rg-codes/HyperFaaS/functions/go/echo/pb"
 	"github.com/3s-rg-codes/HyperFaaS/pkg/worker/functionRuntimeInterface"
-	"google.golang.org/grpc"
+	"github.com/3s-rg-codes/HyperFaaS/proto/common"
 )
 
-type echoServer struct {
-	pb.UnimplementedEchoServer
-}
-
-func (s *echoServer) Echo(ctx context.Context, req *pb.EchoRequest) (*pb.EchoReply, error) {
-	return &pb.EchoReply{Data: req.Data}, nil
-}
-
 func main() {
-	fn := functionRuntimeInterface.NewV2()
+	f := functionRuntimeInterface.New(10)
 
-	fn.Ready(func(reg grpc.ServiceRegistrar) {
-		pb.RegisterEchoServer(reg, &echoServer{})
-	})
+	f.Ready(handler)
+}
+
+func handler(ctx context.Context, in *common.CallRequest) (*common.CallResponse, error) {
+	resp := &common.CallResponse{
+		Data:  in.Data,
+		Error: nil,
+	}
+
+	return resp, nil
 }

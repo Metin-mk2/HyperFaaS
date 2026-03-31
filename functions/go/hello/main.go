@@ -3,23 +3,21 @@ package main
 import (
 	"context"
 
-	"github.com/3s-rg-codes/HyperFaaS/functions/go/hello/pb"
 	"github.com/3s-rg-codes/HyperFaaS/pkg/worker/functionRuntimeInterface"
-	"google.golang.org/grpc"
+	"github.com/3s-rg-codes/HyperFaaS/proto/common"
 )
 
-type helloServer struct {
-	pb.UnimplementedHelloServer
-}
-
-func (s *helloServer) SayHello(ctx context.Context, req *pb.HelloRequest) (*pb.HelloReply, error) {
-	return &pb.HelloReply{Message: "Hello, World!"}, nil
-}
-
 func main() {
-	fn := functionRuntimeInterface.NewV2()
+	f := functionRuntimeInterface.New(10)
 
-	fn.Ready(func(reg grpc.ServiceRegistrar) {
-		pb.RegisterHelloServer(reg, &helloServer{})
-	})
+	f.Ready(handler)
+}
+
+func handler(ctx context.Context, in *common.CallRequest) (*common.CallResponse, error) {
+	resp := &common.CallResponse{
+		Data:  []byte("HELLO WORLD!"),
+		Error: nil,
+	}
+
+	return resp, nil
 }
